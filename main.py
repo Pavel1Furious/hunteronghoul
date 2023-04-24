@@ -281,6 +281,7 @@ async def match_students(update, context):
             students = list(classes[context.user_data['class_name']])
             await update.message.reply_text(f'Выберете отсутсвующих учеников',
                                             reply_markup=generate_students_keyboard(students))
+            return ConversationHandler.END
         else:
             await update.message.reply_text(f'Нет такого класса', reply_markup=COMMON_KEYBOARD)
             return 1
@@ -312,7 +313,6 @@ async def callback_responser(update, context):
         context.user_data['temp_date'] = ''
         context.user_data['temp_user'] = ''
         context.user_data['class_name'] = ''
-        return ConversationHandler.END
 
 
 async def choose_class_to_show_matched_students(update, context):

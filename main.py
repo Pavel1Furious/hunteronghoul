@@ -6,18 +6,25 @@ import json
 import sqlite3
 import requests
 
-TOKEN = '6276213894:AAEUHFkdT-K5iYXiKCTpf4ZnFD9vgixug1k'
-APIKEY = "40d1649f-0493-4b70-98ba-98533de7710b"
+TOKEN = '6276213894:AAEUHFkdT-K5iYXiKCTpf4ZnFD9vgixug1k'  # токен подключения к телеграм боту
+APIKEY = "40d1649f-0493-4b70-98ba-98533de7710b"  # токен подключения к яндекс картам
 COMMON_KEYBOARD = ReplyKeyboardMarkup(
     [['/add_class', '/add_students'], ['/view_students', '/stop'], ['/view_class_list', '/match_students'],
      ['/show_matched', '/coordinates']],
-    one_time_keyboard=False)
+    one_time_keyboard=False)  # стандартная клавиатура
 
-con = sqlite3.connect("stats.sqlite")
+con = sqlite3.connect("stats.sqlite")  # подключение к базу данных
 cur = con.cursor()
 
 
 def write_file_to_db(user_id, file, first_name):
+    """
+    Функция записывает новую и удаляет старую информацию о пользователе при старте
+    :param user_id:
+    :param file:
+    :param first_name:
+    :return:
+    """
     res = cur.execute(f'''DELETE FROM classes WHERE user_id = ?''', (user_id,))
     res = cur.execute(f'''INSERT INTO classes(user_id, stat) VALUES(?,?)''', (user_id, file))
     res = cur.execute(f'''DELETE FROM names WHERE user_id = ?''', (user_id,))
@@ -26,6 +33,12 @@ def write_file_to_db(user_id, file, first_name):
 
 
 def write_name_to_db(user_id, first_name):
+    """
+    Функция обновляет имя пользователя в базе данных
+    :param user_id:
+    :param first_name:
+    :return:
+    """
     res = cur.execute(f'''UPDATE names
                           SET user_name = ?
                           WHERE user_id = ?''', (first_name, user_id))
@@ -33,12 +46,23 @@ def write_name_to_db(user_id, first_name):
 
 
 def read_name_from_db(user_id):
+    """
+    Фунция считывает имя пользователя из базы данных
+    :param user_id:
+    :return:
+    """
     res = cur.execute(f'''SELECT user_name FROM names
                           WHERE user_id = ?''', (user_id,)).fetchone()
     return res
 
 
 def update_stat_in_db(user_id, file):
+    """
+    Функция обновляет файл данных в базе по имени пользователя
+    :param user_id:
+    :param file:
+    :return:
+    """
     res = cur.execute(f'''UPDATE classes
                           SET stat = ?
                           WHERE user_id = ?''', (file, user_id))
@@ -46,23 +70,44 @@ def update_stat_in_db(user_id, file):
 
 
 def read_file_from_db(user_id):
+    """
+    Функция считывает файл из базы данных по имени пользователя
+    :param user_id:
+    :return:
+    """
     res = cur.execute(f'''SELECT stat FROM classes 
                         WHERE user_id = ?''', (user_id,)).fetchall()
     convert_to_common(res[0][0], 'stats.json')
 
 
 def convert_to_binary(file):
+    """
+    Функция конвертирует файл в байтовый формат
+    :param file:
+    :return:
+    """
     with open(file, 'rb') as file:
         res = file.read()
         return res
 
 
 def convert_to_common(data, file):
+    """
+    Функция конвертирует файл из байтового формата в обычный
+    :param data:
+    :param file:
+    :return:
+    """
     with open(file, 'wb') as file:
         file.write(data)
 
 
 def generate_classes_keyboard(classes):
+    """
+    Функция генерирует клавиатуру с классами пользователя
+    :param classes:
+    :return:
+    """
     plus = ceil(len(classes) / 3) * 3 - len(classes)
     [classes.append('') for i in range(plus)]
     res = classes
@@ -73,6 +118,11 @@ def generate_classes_keyboard(classes):
 
 
 def generate_students_keyboard(students):
+    """
+    Функция генерирует клавиатуру с учениками пользователя
+    :param students:
+    :return:
+    """
     keyboard = []
     for student in students:
         but = InlineKeyboardButton(student, callback_data=student)
@@ -365,6 +415,12 @@ async def stop_showing_matched(update, context):
 
 
 def choose_students_by_date(class_, date):
+    """
+    Функция выбирает из списка учеников тех, которые отсутствовали в выбранную дату
+    :param class_:
+    :param date:
+    :return:
+    """
     res = []
     for st in class_:
         if date in class_[st]:
@@ -373,6 +429,11 @@ def choose_students_by_date(class_, date):
 
 
 def coordinating(name):
+    """
+    Функция запрашивает координаты выбранного объекта
+    :param name:
+    :return:
+    """
     serv = 'https://geocode-maps.yandex.ru/1.x/'
     params = {
         'apikey': APIKEY,
@@ -402,6 +463,10 @@ async def stop_coordinating(update, context):
 
 
 def main():
+    """
+    Функция добавляет необходимые хендлеры и запускает работу программы
+    :return:
+    """
     app = Application.builder().token(TOKEN).build()
 
     meeting_handler = ConversationHandler(
